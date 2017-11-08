@@ -251,6 +251,41 @@ nohup /app/local/sersync/sersync2 -r -d -o /app/local/sersync/img.xml >/app/loca
 -o:指定配置文件，默认使用confxml.xml文件
 
 ```
+```
+5、设置sersync监控开机自动执行
+#vi /etc/rc.d/rc.local  #编辑，在最后添加一行
+/usr/local/sersync/sersync2 -d -r -o  /usr/local/sersync/confxml.xml ＃设置开机自动运行脚本
+:wq!  #保存退出
+# chmod +x /etc/rc.d/rc.local   #否则重启不执行
+6、添加脚本监控sersync是否正常运行
+#mkdir  /home/crontab
+#vi  /home/crontab/check_sersync.sh   #编辑，添加以下代码
+#!/bin/sh
+sersync="/usr/local/sersync/sersync2"
+confxml="/usr/local/sersync/confxml.xml"
+status=$(psaux |grep 'sersync2'|grep -v 'grep'|wc -l)
+if [$status -eq 0 ];
+then
+$sersync -d-r -o $confxml &
+else
+exit 0;
+fi
+:wq!  #保存退出
+#chmod +x /home/crontab/check_sersync.sh#添加脚本执行权限
+#vi /etc/crontab #编辑，在最后添加下面一行
+*/5 * * * * root /home/crontab/check_sersync.sh >/dev/null 2>&1  #每隔5分钟执行一次脚本
+#重新加载服务
+#systemctl restart crond.service
+6、测试sersync实时触发rsync同步脚本是否正常运行
+在源服务器192.168.0.48上创建文件inotify_rsync_ceshi
+#mkdir /home/Sync/inotify_rsync_ceshi
+重新启动源服务器：192.168.0.48
+等系统启动之后，查看两台目标服务器 192.168.0.130，192.168.21.128的/home/Sync下是否有inotify_rsync_ceshi文件夹
+然后再在源服务器192.168.0.48创建文件夹inotify_rsync_ceshi_new
+mkdir /home/Sync/inotify_rsync_ceshi_new
+继续查看两台目标服务器 192.168.0.130，192.168.21.128的//home/Sync下是否有inotify_rsync_ceshi_new文件夹
+如果以上测试都通过，说明inotify实时触发rsync同步脚本运行正常。
+```
 
 ## GitHub源码仓库
 
